@@ -1,9 +1,20 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <fcntl.h>
 #include <sys/socket.h>
+#include <sys/stat.h>
 #include <netinet/in.h>
 #include <string.h>
 #include <unistd.h>
+
+char *content_type(char *filename){
+    char *dot = strrchr(filename, '.');
+    if (dot == NULL) return "text/plain";
+    if (strcmp(dot, ".html") == 0) return "text/html";
+    if (strcmp(dot, ".png") == 0) return "image/png";
+    if (strcmp(dot, ".jpeg") == 0) return "image/jpeg";
+    return "text/plain";
+}
 
 int main (void){
     int server = socket(AF_INET, SOCK_STREAM, 0);
@@ -55,11 +66,39 @@ int main (void){
 	}
 	printf("%s %s\n", method, path);
 
-	char *response = "HTTP/1.0 200 OK\r\n"
+	char filename[512];
+	snprintf(filename, sizeof(filename), "www%s", strcmp(path, "/") == 0 : "/index.html" : path);
+
+	struct stat info;
+	int file = -1;
+
+	if (stat(filename, &info) < 0 || !S_ISREG(info.st_mode) || file = open(filename, O_RDONLY) < 0)){
+	    
+	char *response = "HTTP/1.0 404 OK\r\n"
 	    "Content-Type: text/html\r\n"
 	    "\r\n"
-	    "<h1>Welcome, Adam</h1>\n";
-	write(client, response, strlen(response));
+	    "<h1>It's 404, Adam</h1>\n";
+	    write(client, response, strlen(response));
+	    close(client);
+	    continue;
+	}
+
+	char header[256];
+	int length = snprintf(header, sizeof(header),
+	    "HTTP/1.0 200 OK\r\n"
+	    "Content-Type: %s\r\n"
+	    "Content-Length: %ld\r\n"
+	    "\r\n"
+	    content_type(filename), (long)info.st_size);
+	write(client, header, length);
+
+	char buffer[4096];
+	ssize_t count;
+
+	while ((count = read(file, buffer, sizeof(buffer))) > 0) {
+	    write(client, buffer, count);
+	}
+	close(file);
 	close(client);
     }
     return 0;
