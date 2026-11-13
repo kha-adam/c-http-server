@@ -67,12 +67,17 @@ int main (void){
 	printf("%s %s\n", method, path);
 
 	char filename[512];
-	snprintf(filename, sizeof(filename), "www%s", strcmp(path, "/") == 0 : "/index.html" : path);
+	snprintf(filename, 
+	  sizeof(filename), 
+	  "www%s", 
+	  strcmp(path, "/") == 0 ? "/index.html" : path
+	  );
+
 
 	struct stat info;
 	int file = -1;
 
-	if (stat(filename, &info) < 0 || !S_ISREG(info.st_mode) || file = open(filename, O_RDONLY) < 0)){
+	if (stat(filename, &info) < 0 || !S_ISREG(info.st_mode) || (file = open(filename, O_RDONLY)) < 0){
 	    
 	char *response = "HTTP/1.0 404 OK\r\n"
 	    "Content-Type: text/html\r\n"
@@ -88,7 +93,7 @@ int main (void){
 	    "HTTP/1.0 200 OK\r\n"
 	    "Content-Type: %s\r\n"
 	    "Content-Length: %ld\r\n"
-	    "\r\n"
+	    "\r\n",
 	    content_type(filename), (long)info.st_size);
 	write(client, header, length);
 
